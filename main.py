@@ -22,30 +22,33 @@ def main():
         api_key=api_key,
     )
 
+    messages = [
+        {"role": "user", "content": args.user_prompt},
+    ]
+    
     response = client.chat.completions.create(
         model="openrouter/free",
-        messages=[
-            {
-                "role": "user",
-                "content": args.user_prompt,
-            }
-        ],
+        messages=messages,
     )
 
-    # response = tst_response
-    # for k in response:
-    #     print(k)
-    # response is a custom format I cannot handle
-    # if response["usage"] == None:
+    tokens = []
+    try:
+        tokens.append(response.usage[1])
+        tokens.append(response.usage[0])
+    except Exception:
+        tokens.append(None)
+    try:
+        tokens.append(response.usage.prompt_tokens)
+        tokens.append(response.usage.completion_tokens)
+    except Exception:
+        tokens.append(None)
+    try:
+        tokens.append(response.usage["prompt_tokens"])
+        tokens.append(response.usage["completion_tokens"])
+    except Exception:
+        tokens.append(None)
     #     raise RuntimeError("API request failed")
-    
-    # print(response)
-    # try:
-    #     prompt_tokens = response.usage[1]
-    #     completion_tokens = response.usage[0]
-    # except Exception:
-    #     raise RuntimeError("API request failed")
-
+    print(tokens)
     # Don't know how to access that stupid custom data type, so eat hard coded values
     prompt_tokens = 31
     completion_tokens = 212
