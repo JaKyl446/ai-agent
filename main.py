@@ -9,6 +9,7 @@ def main():
 
     parser = argparse.ArgumentParser(description="Chatbot")
     parser.add_argument("user_prompt", type=str, help="User prompt")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
     args = parser.parse_args()
     # Now we can access `args.user_prompt`
 
@@ -36,24 +37,33 @@ def main():
         tokens.append(response.usage[1])
         tokens.append(response.usage[0])
     except Exception:
-        tokens.append(None)
+        tokens.append("failed 1")
     try:
         tokens.append(response.usage.prompt_tokens)
         tokens.append(response.usage.completion_tokens)
     except Exception:
-        tokens.append(None)
+        tokens.append("failed 2")
     try:
         tokens.append(response.usage["prompt_tokens"])
         tokens.append(response.usage["completion_tokens"])
     except Exception:
-        tokens.append(None)
-    #     raise RuntimeError("API request failed")
+        tokens.append("failed 3")
+    try:
+        tokens.append(response.choices[0].usage.prompt_tokens)
+        tokens.append(response.choices[0].usage.completion_tokens)
+    except Exception:
+        tokens.append("failed 4")
     print(tokens)
-    # Don't know how to access that stupid custom data type, so eat hard coded values
-    prompt_tokens = 31
-    completion_tokens = 212
-    print(f"Prompt tokens: {prompt_tokens}")
-    print(f"Response tokens: {completion_tokens}")
+    # Finally found the correct way to access the values
+    try:
+        prompt_tokens = response.usage.prompt_tokens
+        completion_tokens = response.usage.completion_tokens
+    except Exception:
+        raise RuntimeError("API request failed")
+    if args.verbose:
+        print(f"User prompt: {args.user_prompt}")
+        print(f"Prompt tokens: {prompt_tokens}")
+        print(f"Response tokens: {completion_tokens}")
     print(response.choices[0].message.content)
 
 
