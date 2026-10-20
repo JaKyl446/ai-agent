@@ -1,7 +1,6 @@
 import os
 from dotenv import load_dotenv
 from openai import OpenAI
-#from tst_response import tst_response
 import argparse
 
 def main():
@@ -32,29 +31,6 @@ def main():
         messages=messages,
     )
 
-    tokens = []
-    try:
-        tokens.append(response.usage[1])
-        tokens.append(response.usage[0])
-    except Exception:
-        tokens.append("failed 1")
-    try:
-        tokens.append(response.usage.prompt_tokens)
-        tokens.append(response.usage.completion_tokens)
-    except Exception:
-        tokens.append("failed 2")
-    try:
-        tokens.append(response.usage["prompt_tokens"])
-        tokens.append(response.usage["completion_tokens"])
-    except Exception:
-        tokens.append("failed 3")
-    try:
-        tokens.append(response.choices[0].usage.prompt_tokens)
-        tokens.append(response.choices[0].usage.completion_tokens)
-    except Exception:
-        tokens.append("failed 4")
-    print(tokens)
-    # Finally found the correct way to access the values
     try:
         prompt_tokens = response.usage.prompt_tokens
         completion_tokens = response.usage.completion_tokens
