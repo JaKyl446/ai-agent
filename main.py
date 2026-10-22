@@ -1,7 +1,9 @@
+import argparse
 import os
+
 from dotenv import load_dotenv
 from openai import OpenAI
-import argparse
+
 
 def main():
     print("Hello from ai-agent!")
@@ -25,7 +27,7 @@ def main():
     messages = [
         {"role": "user", "content": args.user_prompt},
     ]
-    
+
     response = client.chat.completions.create(
         model="openrouter/free",
         messages=messages,
