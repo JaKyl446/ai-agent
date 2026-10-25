@@ -3,6 +3,8 @@ import os
 
 from dotenv import load_dotenv
 from openai import OpenAI
+from prompts import system_prompt
+# from call_function import available_functions
 
 
 def main():
@@ -11,6 +13,8 @@ def main():
     parser = argparse.ArgumentParser(description="Chatbot")
     parser.add_argument("user_prompt", type=str, help="User prompt")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
+    parser.add_argument("--skip", action="store_true", help="Skip actual query")
+    # parser.add_argument("--temperature", type=int, help="Diales hallucitation/autonomy")
     args = parser.parse_args()
     # Now we can access `args.user_prompt`
 
@@ -25,23 +29,28 @@ def main():
     )
 
     messages = [
+        {"role": "system", "content": system_prompt},
         {"role": "user", "content": args.user_prompt},
     ]
 
-    response = client.chat.completions.create(
-        model="openrouter/free",
-        messages=messages,
-    )
+    if not args.skip:
+        response = client.chat.completions.create(
+            model="openrouter/free",
+            messages=messages,
+            temperature=0,
+        )
 
+    prompt_tokens,completion_tokens = None, None
+    if args.verbose:
+        print(f"System prompt: {system_prompt}")
+        print(f"User prompt: {args.user_prompt}")
+        print(f"Prompt tokens: {prompt_tokens}")
+        print(f"Response tokens: {completion_tokens}")
     try:
         prompt_tokens = response.usage.prompt_tokens
         completion_tokens = response.usage.completion_tokens
     except Exception:
         raise RuntimeError("API request failed")
-    if args.verbose:
-        print(f"User prompt: {args.user_prompt}")
-        print(f"Prompt tokens: {prompt_tokens}")
-        print(f"Response tokens: {completion_tokens}")
     print(response.choices[0].message.content)
 
 
