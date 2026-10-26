@@ -55,10 +55,12 @@ def main():
     print(response.choices[0].message.content)
 
     message = response.choices[0].message
-    if message != None:
+    if message != None and message.tool_calls != None:
         for tool_call in message.tool_calls:
             function_args = json.loads(tool_call.function.arguments or "{}")
             print(f"Calling function: {tool_call.function.name}({function_args})")
+    else:
+        print(message)
 
 
 if __name__ == "__main__":
