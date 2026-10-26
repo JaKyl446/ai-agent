@@ -20,11 +20,11 @@ def run_python_file(
         if not file_path.endswith(".py"):
             return f'Error: "{file_path}" is not a Python file'
 
-        cmd = ["python", target]
+        wd_abs = os.path.normpath(os.path.abspath(working_directory))
+        cmd = ["firejail", "--seccomp", "--net=none", "--quiet", "python", target]
         if type(args) == list and len(args) > 0:
             cmd.extend(args)
 
-        wd_abs = os.path.normpath(os.path.abspath(working_directory))
         proc = subprocess.run(cmd, cwd=wd_abs, capture_output=True, text=True, timeout=30, check=False)
         output = ""
         if proc.returncode != 0:
