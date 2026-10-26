@@ -5,7 +5,7 @@ import os
 from dotenv import load_dotenv
 from openai import OpenAI
 from prompts import system_prompt
-from call_function import available_functions
+from call_function import available_functions, call_function
 
 
 def main():
@@ -56,11 +56,20 @@ def main():
 
     message = response.choices[0].message
     if message != None and message.tool_calls != None:
+        loops = 0
         for tool_call in message.tool_calls:
+            loops += 1
             function_args = json.loads(tool_call.function.arguments or "{}")
             print(f"Calling function: {tool_call.function.name}({function_args})")
-    else:
-        print(message)
+            if loops > 1:
+                # A write_file followed by a run_python_file qualifies as a Remote-Code-Execution
+                print("WARNING: multiple tool calls in a row")
+                continue
+            result_message = call_function(tool_call)
+            if not result_message["content"]:
+                raise Exception("")
+            if args.verbose:
+                print(f"-> {result_message['content']}")
 
 
 if __name__ == "__main__":
