@@ -1,11 +1,13 @@
 import argparse
 import json
 import os
+import sys
 
 from dotenv import load_dotenv
 from openai import OpenAI
 from prompts import system_prompt
 from call_function import available_functions, call_function
+from config import MAX_LOOPS
 
 
 def main():
@@ -14,10 +16,7 @@ def main():
     parser = argparse.ArgumentParser(description="Chatbot")
     parser.add_argument("user_prompt", type=str, help="User prompt")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
-    parser.add_argument("--skip", action="store_true", help="Skip actual query")
-    # parser.add_argument("--temperature", type=int, help="Diales hallucitation/autonomy")
     args = parser.parse_args()
-    # Now we can access `args.user_prompt`
 
     load_dotenv()
     api_key = os.environ.get("OPENROUTER_API_KEY")
@@ -29,47 +28,47 @@ def main():
         api_key=api_key,
     )
 
+    prompt_tokens, completion_tokens = None, None
     messages = [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": args.user_prompt},
     ]
 
-    if not args.skip:
+    for _ in range(MAX_LOOPS):
         response = client.chat.completions.create(
             model="openrouter/free",
             messages=messages,
             tools=available_functions,
         )
+        try:
+            prompt_tokens = response.usage.prompt_tokens
+            completion_tokens = response.usage.completion_tokens
+        except Exception:
+            raise RuntimeError("API request failed")
+        if args.verbose:
+            print(f"System prompt: {system_prompt}")
+            print(f"User prompt: {args.user_prompt}")
+            print(f"Prompt tokens: {prompt_tokens}")
+            print(f"Response tokens: {completion_tokens}")
 
-    prompt_tokens,completion_tokens = None, None
-    if args.verbose:
-        print(f"System prompt: {system_prompt}")
-        print(f"User prompt: {args.user_prompt}")
-        print(f"Prompt tokens: {prompt_tokens}")
-        print(f"Response tokens: {completion_tokens}")
-    try:
-        prompt_tokens = response.usage.prompt_tokens
-        completion_tokens = response.usage.completion_tokens
-    except Exception:
-        raise RuntimeError("API request failed")
-    print(response.choices[0].message.content)
+        message = response.choices[0].message
+        messages.append(message)
 
-    message = response.choices[0].message
-    if message != None and message.tool_calls != None:
-        loops = 0
-        for tool_call in message.tool_calls:
-            loops += 1
-            function_args = json.loads(tool_call.function.arguments or "{}")
-            print(f"Calling function: {tool_call.function.name}({function_args})")
-            if loops > 1:
-                # A write_file followed by a run_python_file qualifies as a Remote-Code-Execution
-                print("WARNING: multiple tool calls in a row")
-                continue
-            result_message = call_function(tool_call)
-            if not result_message["content"]:
-                raise Exception("")
-            if args.verbose:
-                print(f"-> {result_message['content']}")
+        if message.tool_calls != None:
+            for tool_call in message.tool_calls:
+                function_args = json.loads(tool_call.function.arguments or "{}")
+                result_message = call_function(tool_call, args.verbose)
+                messages.append(result_message)
+                if not result_message["content"]:
+                    raise Exception("received no content from call_function")
+                if args.verbose:
+                    print(f"-> {result_message['content']}")
+        else:
+            print(message.content)
+            return
+
+    print(f"Loop limit ({MAX_LOOPS}) reached. Aborting...")
+    sys.exit(1)
 
 
 if __name__ == "__main__":
