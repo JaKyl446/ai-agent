@@ -20,11 +20,14 @@ def run_python_file(
         if not file_path.endswith(".py"):
             return f'Error: "{file_path}" is not a Python file'
 
-        wd_abs = os.path.normpath(os.path.abspath(working_directory))
+        if not wait_for_review(target, args):
+            return (f'Error: Human intervention while trying to execute "{file_path}"')
+        
         cmd = ["firejail", "--seccomp", "--net=none", "--quiet", "python", target]
         if type(args) == list and len(args) > 0:
             cmd.extend(args)
 
+        wd_abs = os.path.normpath(os.path.abspath(working_directory))
         proc = subprocess.run(cmd, cwd=wd_abs, capture_output=True, text=True, timeout=30, check=False)
         output = ""
         if proc.returncode != 0:
@@ -39,6 +42,14 @@ def run_python_file(
         return output
     except Exception as e:
         return(f"Error: executing Python file: {e}")
+
+def wait_for_review(target: str, args: list[str]) -> bool:
+    print(f"Calling: {target} with args: {args}")
+    cmd = ["kwrite", target]
+    proc = subprocess.run(cmd, check=False)
+    if proc.returncode == 0:
+        return True
+    return False
 
 schema_run_python_file = {
     "type": "function",
